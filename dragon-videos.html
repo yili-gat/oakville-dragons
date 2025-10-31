@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oakville龙队 - 2025秋季联赛</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+        
+        /* 1. 外部容器：设置固定尺寸并隐藏溢出内容 */
+        #player-container {
+            margin: 0 auto;
+            width: 560px;
+            height: 315px; 
+            overflow: hidden; 
+            position: relative;
+        }
+
+        #youtube-player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 315px; 
+            z-index: 1;
+        }
+
+        #video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            display: none;
+            z-index: 10;
+        }
+
+        #replay-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            width: 64px;
+            height: 64px;
+            border: none;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Oakville龙队 - 2025秋季联赛</h1>
+
+    <h3>小老鼠带球长驱直入，射门被封堵</h3>
+
+    <div id="player-container">
+        <div id="youtube-player"></div>
+        <div id="video-overlay">
+            <div id="replay-button">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const VIDEO_ID = 'KKiLBh_phmI';
+        const START_TIME = 852;
+        const END_TIME = 867;
+
+        let player;
+        let checkInterval;
+        let videoisending = false;
+        
+        const videoOverlay = document.getElementById('video-overlay');
+        const replayButton = document.getElementById('replay-button');
+
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('youtube-player', {
+                height: '315',
+                width: '560',
+                videoId: VIDEO_ID,
+                playerVars: {
+                    'enablejsapi': 1,
+                    'controls': 0,
+                    'showinfo': 0,
+                    'rel': 0,
+                    'start': START_TIME
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            event.target.pauseVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            const state = event.data;
+
+            if (state === YT.PlayerState.PLAYING) {
+                if (!videoisending) {
+                    startPlayheadCheck();
+                    videoOverlay.style.display = 'none';
+                }
+                videoisending = false;
+            } else if (state === YT.PlayerState.PAUSED) {
+                stopPlayheadCheck();
+            } else if (state === YT.PlayerState.BUFFERING) {
+                stopPlayheadCheck();
+            } else if (state === YT.PlayerState.ENDED) {
+                console.log("Video ended, showing overlay.");
+                videoisending = true;
+                stopPlayheadCheck();
+                player.seekTo(START_TIME, true);
+                player.pauseVideo();
+                videoOverlay.style.display = 'block';
+            }
+        }
+        
+        function stopPlayheadCheck() {
+             if (checkInterval) {
+                clearInterval(checkInterval);
+                checkInterval = null;
+             }
+        }
+
+        function startPlayheadCheck() {
+            if (checkInterval) return; 
+
+            checkInterval = setInterval(() => {
+                const currentTime = player.getCurrentTime();
+                
+                if (currentTime >= END_TIME) {
+                    console.log("End time reached, showing overlay.");
+                    videoisending = true;
+                    stopPlayheadCheck();
+                    player.seekTo(START_TIME, true); 
+                    player.pauseVideo();
+                    videoOverlay.style.display = 'block';
+                    
+                } else if (currentTime < START_TIME) {
+                    // 确保播放时始终从 START_TIME 之后开始
+                    player.seekTo(START_TIME, true);
+                }
+
+            }, 500);
+        }
+
+        replayButton.addEventListener('click', () => {
+            videoOverlay.style.display = 'none';
+            player.playVideo();
+        });
+    </script>
+    
+</body>
+</html>
