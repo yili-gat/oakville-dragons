@@ -12,15 +12,15 @@
         }
         
         /* 1. 外部容器：设置固定尺寸并隐藏溢出内容 */
-        #player-container {
-            margin: 0 auto;
+        .player-container {
+            margin: 0 auto 20px auto; /* Add some margin to the bottom */
             width: 560px;
             height: 315px; 
             overflow: hidden; 
             position: relative;
         }
 
-        #youtube-player {
+        .youtube-player {
             position: absolute;
             top: 0;
             left: 0;
@@ -28,7 +28,7 @@
             z-index: 1;
         }
 
-        #video-overlay {
+        .video-overlay {
             position: absolute;
             top: 0;
             left: 0;
@@ -39,7 +39,7 @@
             z-index: 10;
         }
 
-        #replay-button {
+        .replay-button {
             position: absolute;
             top: 50%;
             left: 50%;
@@ -59,28 +59,50 @@
 <body>
     <h1>Oakville龙队 - 2025秋季联赛</h1>
 
-    <h3>小老鼠带球长驱直入，射门被封堵</h3>
-
-    <div id="player-container">
-        <div id="youtube-player"></div>
-        <div id="video-overlay">
-            <div id="replay-button">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-            </div>
-        </div>
-    </div>
+    <div id="video-clips"></div>
     
     <script>
-        const VIDEO_ID = 'KKiLBh_phmI';
-        const START_TIME = 852;
-        const END_TIME = 867;
+        // 在这里定义所有视频片段
+        const videoClips = [
+            {
+                title: 'Simon无解重炮',
+                videoId: 'LGen6bOmkas',
+                startTime: 540,
+                endTime: 555
+            },
+            {
+                title: '小老鼠带球长驱直入，射门被封堵',
+                videoId: 'KKiLBh_phmI',
+                startTime: 852,
+                endTime: 867
+            }
+        ];
 
-        let player;
-        let checkInterval;
-        let videoisending = false;
-        
-        const videoOverlay = document.getElementById('video-overlay');
-        const replayButton = document.getElementById('replay-button');
+        // —————————————— 以下为共用脚本, 一般无需修改 ——————————————
+
+        let players = {};
+        let checkIntervals = {};
+        let videoStates = {};
+
+        // 动态生成HTML
+        const videoClipsContainer = document.getElementById('video-clips');
+        videoClips.forEach((clip, index) => {
+            const uniqueId = `video-${index}`;
+            videoStates[uniqueId] = { isEnding: false };
+
+            const clipHTML = `
+                <h3>${clip.title}</h3>
+                <div id="player-container-${uniqueId}" class="player-container">
+                    <div id="youtube-player-${uniqueId}"></div>
+                    <div id="video-overlay-${uniqueId}" class="video-overlay">
+                        <div id="replay-button-${uniqueId}" class="replay-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                        </div>
+                    </div>
+                </div>
+            `;
+            videoClipsContainer.innerHTML += clipHTML;
+        });
 
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
@@ -88,21 +110,24 @@
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         function onYouTubeIframeAPIReady() {
-            player = new YT.Player('youtube-player', {
-                height: '315',
-                width: '560',
-                videoId: VIDEO_ID,
-                playerVars: {
-                    'enablejsapi': 1,
-                    'controls': 0,
-                    'showinfo': 0,
-                    'rel': 0,
-                    'start': START_TIME
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
+            videoClips.forEach((clip, index) => {
+                const uniqueId = `video-${index}`;
+                players[uniqueId] = new YT.Player(`youtube-player-${uniqueId}`, {
+                    height: '315',
+                    width: '560',
+                    videoId: clip.videoId,
+                    playerVars: {
+                        'enablejsapi': 1,
+                        'controls': 0,
+                        'showinfo': 0,
+                        'rel': 0,
+                        'start': clip.startTime
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': (event) => onPlayerStateChange(event, uniqueId, clip)
+                    }
+                });
             });
         }
 
@@ -110,63 +135,62 @@
             event.target.pauseVideo();
         }
 
-        function onPlayerStateChange(event) {
+        function onPlayerStateChange(event, uniqueId, clip) {
             const state = event.data;
+            const player = players[uniqueId];
+            const videoOverlay = document.getElementById(`video-overlay-${uniqueId}`);
 
             if (state === YT.PlayerState.PLAYING) {
-                if (!videoisending) {
-                    startPlayheadCheck();
+                if (!videoStates[uniqueId].isEnding) {
+                    startPlayheadCheck(uniqueId, clip);
                     videoOverlay.style.display = 'none';
                 }
-                videoisending = false;
-            } else if (state === YT.PlayerState.PAUSED) {
-                stopPlayheadCheck();
-            } else if (state === YT.PlayerState.BUFFERING) {
-                stopPlayheadCheck();
+                videoStates[uniqueId].isEnding = false;
+            } else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.BUFFERING) {
+                stopPlayheadCheck(uniqueId);
             } else if (state === YT.PlayerState.ENDED) {
-                console.log("Video ended, showing overlay.");
-                videoisending = true;
-                stopPlayheadCheck();
-                player.seekTo(START_TIME, true);
+                videoStates[uniqueId].isEnding = true;
+                stopPlayheadCheck(uniqueId);
+                player.seekTo(clip.startTime, true);
                 player.pauseVideo();
                 videoOverlay.style.display = 'block';
             }
         }
         
-        function stopPlayheadCheck() {
-             if (checkInterval) {
-                clearInterval(checkInterval);
-                checkInterval = null;
+        function stopPlayheadCheck(uniqueId) {
+             if (checkIntervals[uniqueId]) {
+                clearInterval(checkIntervals[uniqueId]);
+                checkIntervals[uniqueId] = null;
              }
         }
 
-        function startPlayheadCheck() {
-            if (checkInterval) return; 
+        function startPlayheadCheck(uniqueId, clip) {
+            if (checkIntervals[uniqueId]) return; 
 
-            checkInterval = setInterval(() => {
+            checkIntervals[uniqueId] = setInterval(() => {
+                const player = players[uniqueId];
                 const currentTime = player.getCurrentTime();
                 
-                if (currentTime >= END_TIME) {
-                    console.log("End time reached, showing overlay.");
-                    videoisending = true;
-                    stopPlayheadCheck();
-                    player.seekTo(START_TIME, true); 
+                if (currentTime >= clip.endTime) {
+                    videoStates[uniqueId].isEnding = true;
+                    stopPlayheadCheck(uniqueId);
+                    player.seekTo(clip.startTime, true); 
                     player.pauseVideo();
-                    videoOverlay.style.display = 'block';
-                    
-                } else if (currentTime < START_TIME) {
-                    // 确保播放时始终从 START_TIME 之后开始
-                    player.seekTo(START_TIME, true);
+                    document.getElementById(`video-overlay-${uniqueId}`).style.display = 'block';
+                } else if (currentTime < clip.startTime) {
+                    player.seekTo(clip.startTime, true);
                 }
-
             }, 500);
         }
 
-        replayButton.addEventListener('click', () => {
-            videoOverlay.style.display = 'none';
-            player.playVideo();
+        // Add event listeners for replay buttons
+        videoClips.forEach((clip, index) => {
+            const uniqueId = `video-${index}`;
+            document.getElementById(`replay-button-${uniqueId}`).addEventListener('click', () => {
+                document.getElementById(`video-overlay-${uniqueId}`).style.display = 'none';
+                players[uniqueId].playVideo();
+            });
         });
     </script>
-    
 </body>
 </html>
