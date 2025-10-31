@@ -13,18 +13,21 @@
         
         /* 1. 外部容器：设置固定尺寸并隐藏溢出内容 */
         .player-container {
-            margin: 0 auto 20px auto; /* Add some margin to the bottom */
-            width: 560px;
-            height: 315px; 
-            overflow: hidden; 
             position: relative;
+            margin: 0 auto 20px auto;
+            width: 100%;
+            max-width: 560px; /* Max width of the video */
+            overflow: hidden;
+            aspect-ratio: 16 / 9; /* Maintain 16:9 aspect ratio */
+            background-color: #000; /* Black background for letterboxing */
         }
 
         .youtube-player {
             position: absolute;
             top: 0;
             left: 0;
-            height: 315px; 
+            width: 100%;
+            height: 100%;
             z-index: 1;
         }
 
@@ -131,8 +134,8 @@
             videoClips.forEach((clip, index) => {
                 const uniqueId = `video-${index}`;
                 players[uniqueId] = new YT.Player(`youtube-player-${uniqueId}`, {
-                    height: '315',
-                    width: '560',
+                    height: '100%',
+                    width: '100%',
                     videoId: clip.videoId,
                     playerVars: {
                         'enablejsapi': 1,
