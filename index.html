@@ -159,11 +159,9 @@
             const videoOverlay = document.getElementById(`video-overlay-${uniqueId}`);
 
             if (state === YT.PlayerState.PLAYING) {
-                if (!videoStates[uniqueId].isEnding) {
-                    startPlayheadCheck(uniqueId, clip);
-                    videoOverlay.style.display = 'none';
-                }
                 videoStates[uniqueId].isEnding = false;
+                startPlayheadCheck(uniqueId, clip);
+                videoOverlay.style.display = 'none';
             } else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.BUFFERING) {
                 stopPlayheadCheck(uniqueId);
             } else if (state === YT.PlayerState.ENDED) {
