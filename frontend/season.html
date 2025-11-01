@@ -121,6 +121,40 @@
             justify-content: center;
         }
 
+        .video-controls-external {
+            text-align: right;
+            margin-top: 10px;
+        }
+
+        .control-button {
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 8px 12px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .video-controls-external .control-button {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            color: #333;
+        }
+
+        .exit-fullscreen-button-inline {
+            display: none; /* Hidden by default */
+            position: absolute;
+            bottom: 10px;
+            left: 33.33%;
+            transform: translateX(-50%);
+            z-index: 25; /* Make sure it's on top */
+        }
+
+        .player-container:fullscreen .exit-fullscreen-button-inline {
+            display: block; /* Shown only in fullscreen */
+        }
+
         @media (max-width: 600px) {
             h1 {
                 font-size: 1.5em;
@@ -187,7 +221,7 @@
                 ]
             },
             {
-                gameInfo: "第2场 vs. ?, Oct 23 2025, 4:1",
+                gameInfo: "第2场 vs. Compare FC, Oct 23 2025, 4:1",
                 clips: [
 
                 ]
@@ -235,6 +269,14 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
                                 </div>
                             </div>
+                            <button id="exit-fullscreen-btn-${uniqueId}" class="control-button exit-fullscreen-button-inline" title="退出全屏">
+                                退出全屏
+                            </button>
+                        </div>
+                        <div class="video-controls-external">
+                            <button id="fullscreen-btn-${uniqueId}" class="control-button" title="全屏播放">
+                                全屏
+                            </button>
                         </div>
                     </div>
                 `;
@@ -324,7 +366,33 @@
             }, 500);
         }
 
-        // Add event listeners for replay buttons
+        function toggleFullScreen(uniqueId) {
+            const playerContainer = document.getElementById(`player-container-${uniqueId}`);
+
+            if (!document.fullscreenElement) {
+                playerContainer.requestFullscreen().catch(err => {
+                    alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', (event) => {
+            const fullscreenElement = document.fullscreenElement;
+            if (fullscreenElement) {
+                // Entered fullscreen
+                screen.orientation.lock('landscape').catch(err => {
+                    // This might fail on some devices/browsers, but we can ignore the error.
+                    console.warn("Could not lock screen orientation: ", err);
+                });
+            } else {
+                // Exited fullscreen
+                screen.orientation.unlock();
+            }
+        });
+
+        // Add event listeners for replay and fullscreen buttons
         let finalClipIndex = 0;
         games.forEach(game => {
             game.clips.forEach(clip => {
@@ -333,9 +401,18 @@
                     document.getElementById(`video-overlay-${uniqueId}`).style.display = 'none';
                     players[uniqueId].playVideo();
                 });
+
+                document.getElementById(`fullscreen-btn-${uniqueId}`).addEventListener('click', () => {
+                    toggleFullScreen(uniqueId);
+                });
+                document.getElementById(`exit-fullscreen-btn-${uniqueId}`).addEventListener('click', () => {
+                    toggleFullScreen(uniqueId);
+                });
+
                 finalClipIndex++;
             });
         });
+
         document.addEventListener('DOMContentLoaded', () => {
             const gameHeaders = document.querySelectorAll('.game-header');
             gameHeaders.forEach(header => {
