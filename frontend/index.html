@@ -4,18 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oakville龙队 - 2025秋季联赛</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            text-align: center;
+            padding-top: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
         .game-header {
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: center;
+            /* justify-content: center; */
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            margin: 10px auto;
+            max-width: 560px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         .toggle-button {
-            margin-left: 10px;
-            font-size: 20px;
+            margin-right: 10px;
             transition: transform 0.3s ease;
+            width: 0;
+            height: 0;
+            border-top: 6px solid transparent;
+            border-bottom: 6px solid transparent;
+            border-left: 8px solid #333;
+        }
+
+        .toggle-button.expanded {
+            transform: rotate(90deg);
         }
 
         .clips-container {
@@ -25,21 +65,23 @@
             max-height: 0;
         }
 
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 50px;
+        .video-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px auto;
+            max-width: 560px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        /* 1. 外部容器：设置固定尺寸并隐藏溢出内容 */
+
         .player-container {
             position: relative;
-            margin: 0 auto 20px auto;
+            margin: 0 auto;
             width: 100%;
-            max-width: 560px; /* Max width of the video */
             overflow: hidden;
-            aspect-ratio: 16 / 9; /* Maintain 16:9 aspect ratio */
-            background-color: #000; /* Black background for letterboxing */
+            aspect-ratio: 16 / 9;
+            background-color: #000;
+            border-radius: 8px;
         }
 
         .youtube-player {
@@ -60,6 +102,7 @@
             background-color: transparent;
             display: none;
             z-index: 10;
+            border-radius: 8px;
         }
 
         .replay-button {
@@ -76,6 +119,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
+            h3 {
+                font-size: 1em;
+            }
+            .game-header h2 {
+                font-size: 1em;
+            }
         }
     </style>
 </head>
@@ -154,8 +212,8 @@
         games.forEach((game, gameIndex) => {
             const gameHTML = `
                 <div class="game-header" data-game-index="${gameIndex}">
+                    <span class="toggle-button"></span>
                     <h2>${game.gameInfo}</h2>
-                    <span class="toggle-button">+</span>
                 </div>
                 <div class="clips-container" id="clips-container-${gameIndex}">
                 </div>
@@ -168,12 +226,14 @@
                 videoStates[uniqueId] = { isEnding: false };
 
                 const clipHTML = `
-                    <h3>${clip.title}</h3>
-                    <div id="player-container-${uniqueId}" class="player-container">
-                        <div id="youtube-player-${uniqueId}"></div>
-                        <div id="video-overlay-${uniqueId}" class="video-overlay">
-                            <div id="replay-button-${uniqueId}" class="replay-button">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                    <div class="video-card">
+                        <h3>${clip.title}</h3>
+                        <div id="player-container-${uniqueId}" class="player-container">
+                            <div id="youtube-player-${uniqueId}"></div>
+                            <div id="video-overlay-${uniqueId}" class="video-overlay">
+                                <div id="replay-button-${uniqueId}" class="replay-button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -292,8 +352,7 @@
                             setTimeout(() => {
                                 otherClipsContainer.style.display = 'none';
                             }, 500); // Match transition time
-                            otherToggleButton.textContent = '+';
-                            otherToggleButton.style.transform = 'rotate(0deg)';
+                            otherToggleButton.classList.remove('expanded');
                         }
                     });
 
@@ -305,13 +364,11 @@
                         setTimeout(() => {
                             clipsContainer.style.display = 'none';
                         }, 500); // Match transition time
-                        toggleButton.textContent = '+';
-                        toggleButton.style.transform = 'rotate(0deg)';
+                        toggleButton.classList.remove('expanded');
                     } else {
                         clipsContainer.style.display = 'block';
                         clipsContainer.style.maxHeight = clipsContainer.scrollHeight + 'px';
-                        toggleButton.textContent = '-';
-                        toggleButton.style.transform = 'rotate(45deg)';
+                        toggleButton.classList.add('expanded');
                     }
                 });
             });
