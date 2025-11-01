@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oakville龙队 - 2025秋季联赛</title>
+    <style>
+        .game-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-button {
+            margin-left: 10px;
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .clips-container {
+            display: none;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+            max-height: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 50px;
+        }
+        
+        /* 1. 外部容器：设置固定尺寸并隐藏溢出内容 */
+        .player-container {
+            position: relative;
+            margin: 0 auto 20px auto;
+            width: 100%;
+            max-width: 560px; /* Max width of the video */
+            overflow: hidden;
+            aspect-ratio: 16 / 9; /* Maintain 16:9 aspect ratio */
+            background-color: #000; /* Black background for letterboxing */
+        }
+
+        .youtube-player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            display: none;
+            z-index: 10;
+        }
+
+        .replay-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            width: 64px;
+            height: 64px;
+            border: none;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Oakville龙队 - 2025秋季联赛</h1>
+
+    <div id="video-clips"></div>
+    
+    <script>
+        // 在这里定义所有视频片段
+        const games = [
+            {
+                gameInfo: "第3场 vs. Eagles, Oct 30 2025, 3:1",
+                clips: [
+                    {
+                        title: 'Simon无解重炮，龙队再度超出',
+                        videoId: 'LGen6bOmkas',
+                        startTime: 540,
+                        endTime: 555
+                    },
+                    {
+                        title: '小老鼠衔枚疾走，如入无人之境',
+                        videoId: 'KKiLBh_phmI',
+                        startTime: 852,
+                        endTime: 867
+                    },
+                    {
+                        title: '靓仔爆射再妙传，马修扫射破僵局',
+                        videoId: 'KKiLBh_phmI',
+                        startTime: 248,
+                        endTime: 258
+                    },
+                    {
+                        title: 'Jeffrey任意球怒射差之毫厘',
+                        videoId: 'LGen6bOmkas',
+                        startTime: 0,
+                        endTime: 9
+                    },
+                    {
+                        title: '色哥献助攻，大黄戏耍门将定胜局',
+                        videoId: 'LGen6bOmkas',
+                        startTime: 1050,
+                        endTime: 1072
+                    },
+                    {
+                        title: '大黄吴指双鬼拍门，对方门将献神扑',
+                        videoId: 'LGen6bOmkas',
+                        startTime: 890,
+                        endTime: 910
+                    }
+                ]
+            },
+            {
+                gameInfo: "第2场 vs. ?, Oct 23 2025, 4:1",
+                clips: [
+
+                ]
+            },
+            {
+                gameInfo: "第1场 vs. ?, Oct 16 2025, 2:0",
+                clips: [
+
+                ]
+            }
+        ];
+
+        // —————————————— 以下为共用脚本, 一般无需修改 ——————————————
+
+        let players = {};
+        let checkIntervals = {};
+        let videoStates = {};
+
+        // 动态生成HTML
+        const videoClipsContainer = document.getElementById('video-clips');
+        let clipIndex = 0;
+        games.forEach((game, gameIndex) => {
+            const gameHTML = `
+                <div class="game-header" data-game-index="${gameIndex}">
+                    <h2>${game.gameInfo}</h2>
+                    <span class="toggle-button">+</span>
+                </div>
+                <div class="clips-container" id="clips-container-${gameIndex}">
+                </div>
+            `;
+            videoClipsContainer.innerHTML += gameHTML;
+
+            const clipsContainer = document.getElementById(`clips-container-${gameIndex}`);
+            game.clips.forEach(clip => {
+                const uniqueId = `video-${clipIndex}`;
+                videoStates[uniqueId] = { isEnding: false };
+
+                const clipHTML = `
+                    <h3>${clip.title}</h3>
+                    <div id="player-container-${uniqueId}" class="player-container">
+                        <div id="youtube-player-${uniqueId}"></div>
+                        <div id="video-overlay-${uniqueId}" class="video-overlay">
+                            <div id="replay-button-${uniqueId}" class="replay-button">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="48px" height="48px"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                clipsContainer.innerHTML += clipHTML;
+                clipIndex++;
+            });
+        });
+
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            let clipIndex = 0;
+            games.forEach(game => {
+                game.clips.forEach(clip => {
+                    const uniqueId = `video-${clipIndex}`;
+                    players[uniqueId] = new YT.Player(`youtube-player-${uniqueId}`, {
+                        height: '100%',
+                        width: '100%',
+                        videoId: clip.videoId,
+                        playerVars: {
+                            'enablejsapi': 1,
+                            'controls': 0,
+                            'showinfo': 0,
+                            'rel': 0,
+                            'start': clip.startTime
+                        },
+                        events: {
+                            'onReady': onPlayerReady,
+                            'onStateChange': (event) => onPlayerStateChange(event, uniqueId, clip)
+                        }
+                    });
+                    clipIndex++;
+                });
+            });
+        }
+
+        function onPlayerReady(event) {
+            event.target.pauseVideo();
+        }
+
+        function onPlayerStateChange(event, uniqueId, clip) {
+            const state = event.data;
+            const player = players[uniqueId];
+            const videoOverlay = document.getElementById(`video-overlay-${uniqueId}`);
+
+            if (state === YT.PlayerState.PLAYING) {
+                videoStates[uniqueId].isEnding = false;
+                startPlayheadCheck(uniqueId, clip);
+                videoOverlay.style.display = 'none';
+            } else if (state === YT.PlayerState.PAUSED || state === YT.PlayerState.BUFFERING) {
+                stopPlayheadCheck(uniqueId);
+            } else if (state === YT.PlayerState.ENDED) {
+                videoStates[uniqueId].isEnding = true;
+                stopPlayheadCheck(uniqueId);
+                player.seekTo(clip.startTime, true);
+                player.pauseVideo();
+                videoOverlay.style.display = 'block';
+            }
+        }
+        
+        function stopPlayheadCheck(uniqueId) {
+             if (checkIntervals[uniqueId]) {
+                clearInterval(checkIntervals[uniqueId]);
+                checkIntervals[uniqueId] = null;
+             }
+        }
+
+        function startPlayheadCheck(uniqueId, clip) {
+            if (checkIntervals[uniqueId]) return; 
+
+            checkIntervals[uniqueId] = setInterval(() => {
+                const player = players[uniqueId];
+                const currentTime = player.getCurrentTime();
+                
+                if (currentTime >= clip.endTime) {
+                    videoStates[uniqueId].isEnding = true;
+                    stopPlayheadCheck(uniqueId);
+                    player.seekTo(clip.startTime, true); 
+                    player.pauseVideo();
+                    document.getElementById(`video-overlay-${uniqueId}`).style.display = 'block';
+                } else if (currentTime < clip.startTime) {
+                    player.seekTo(clip.startTime, true);
+                }
+            }, 500);
+        }
+
+        // Add event listeners for replay buttons
+        let finalClipIndex = 0;
+        games.forEach(game => {
+            game.clips.forEach(clip => {
+                const uniqueId = `video-${finalClipIndex}`;
+                document.getElementById(`replay-button-${uniqueId}`).addEventListener('click', () => {
+                    document.getElementById(`video-overlay-${uniqueId}`).style.display = 'none';
+                    players[uniqueId].playVideo();
+                });
+                finalClipIndex++;
+            });
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            const gameHeaders = document.querySelectorAll('.game-header');
+            gameHeaders.forEach(header => {
+                header.addEventListener('click', () => {
+                    const selectedGameIndex = header.getAttribute('data-game-index');
+
+                    gameHeaders.forEach(otherHeader => {
+                        const otherGameIndex = otherHeader.getAttribute('data-game-index');
+                        const otherClipsContainer = document.getElementById(`clips-container-${otherGameIndex}`);
+                        const otherToggleButton = otherHeader.querySelector('.toggle-button');
+
+                        if (otherGameIndex !== selectedGameIndex && otherClipsContainer.style.display === 'block') {
+                            otherClipsContainer.style.maxHeight = '0';
+                            setTimeout(() => {
+                                otherClipsContainer.style.display = 'none';
+                            }, 500); // Match transition time
+                            otherToggleButton.textContent = '+';
+                            otherToggleButton.style.transform = 'rotate(0deg)';
+                        }
+                    });
+
+                    const clipsContainer = document.getElementById(`clips-container-${selectedGameIndex}`);
+                    const toggleButton = header.querySelector('.toggle-button');
+
+                    if (clipsContainer.style.display === 'block') {
+                        clipsContainer.style.maxHeight = '0';
+                        setTimeout(() => {
+                            clipsContainer.style.display = 'none';
+                        }, 500); // Match transition time
+                        toggleButton.textContent = '+';
+                        toggleButton.style.transform = 'rotate(0deg)';
+                    } else {
+                        clipsContainer.style.display = 'block';
+                        clipsContainer.style.maxHeight = clipsContainer.scrollHeight + 'px';
+                        toggleButton.textContent = '-';
+                        toggleButton.style.transform = 'rotate(45deg)';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
